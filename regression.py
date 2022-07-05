@@ -5,13 +5,16 @@ Created on Wed May 18 10:07:34 2022
 
 @author: Marco
 """
-import time
+import os
+import sys
 
 import numpy as np
 import xarray as xr
 from numpy.polynomial import Polynomial
 
-st = time.time()
+
+# TO DO: argomenti unwrap, dem, bordo, passo, pixdx, pixdy
+
 # Load dei file di input
 unwrap = xr.open_dataset("unwrap.grd", cache=False)
 dem = xr.open_dataset("dem_cut.grd", cache=False)
@@ -118,7 +121,4 @@ for k in range(ind):
     coef2 = regressione.coef[1]
     # salvo i parametri su degli array delle stesse dimensioni dei file di input
     risultati_regress1[k] = coef1
-    risultati_regress2[k] = coef2
-
-elapsed_time = time.time() - st
-print("Execution time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+# TO DO: risultati_regress0 e risultati_regress1 scritte a grd
