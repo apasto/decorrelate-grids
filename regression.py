@@ -16,28 +16,37 @@ from numpy.polynomial import Polynomial
 # TO DO: argomenti unwrap, dem, bordo, passo, pixdx, pixdy
 
 # Load dei file di input
-unwrap = xr.open_dataset("unwrap.grd", cache=False)
-dem = xr.open_dataset("dem_cut.grd", cache=False)
+unwrap_filename = sys.argv[1]
+dem_filename = sys.argv[2]
 
-# Con questo mergio le coordinate x e y per creare la dim "coord" e poter estrapolare gli array
+# output path per grd da salvare
+out_path = os.path.dirname(os.path.abspath(unwrap_filename))
+
+unwrap = xr.open_dataset(unwrap_filename, cache=False)
+dem = xr.open_dataset(dem_filename, cache=False)
+
+# Con questo mergio le coordinate x e y
+# per creare la dim "coord" e poter estrapolare gli array
 unwrap_stacked = unwrap.stack(coord=["x", "y"])
 # Estrapolo gli array
 x = unwrap_stacked.coords["x"].values
 y = unwrap_stacked.coords["y"].values
 z = unwrap_stacked.z.values
-# Creo un array di nan lungo quanto z per salvare i risultati della regressione
+# Creo un array di nan lungo quanto z
+# per salvare i risultati della regressione
+risultati_regress0 = np.full(z.size, np.nan)
 risultati_regress1 = np.full(z.size, np.nan)
-risultati_regress2 = np.full(z.size, np.nan)
 # Estrapolo la matrice da cui prendere gli indici
 z_ind = unwrap.z.values
-# Numnero complessivo di indici
+# Numero complessivo di indici
 ind = x.size
 
 # grandezza del pixel in coordinate radar
 pixdx = 16
 pixdy = 4
 
-# Definisco il gli indici da non considerare per il bordo e per metà finestra
+# Definisco il gli indici da non considerare
+# per il bordo e per metà finestra
 bordo = 5
 passo = 27
 passox = pixdx * passo
@@ -59,15 +68,13 @@ nxmax = (np.max(m) + 1) - step
 unwrap_sel = unwrap.isel(x=slice(nxmin, nxmax), y=slice(mymin, mymax))
 unwrap_sel_stacked = unwrap_sel.stack(coord=["x", "y"])
 
-
-# trovo il primo indice min e l'ultimo per max sull'array di x per costruire l'array della regressione
+# trovo il primo indice min e l'ultimo per max sull'array di x
+# per costruire l'array della regressione
 result_xmin_ind = np.where(x == unwrap_sel.x.values[0])
 ind_xmin = np.min(result_xmin_ind)
 
-
 result_xmax_ind = np.where(x == np.max(unwrap_sel.x.values))
 ind_xmax = np.max(result_xmax_ind)
-
 
 ind_full = np.full(ind, False)
 ind_full[ind_xmin : ind_xmax + 1] = True
@@ -92,7 +99,8 @@ for k in range(ind):
     sottofinestra_unwrap = unwrap.sel(
         x=slice(windxmin, windxmax), y=slice(windymin, windymax)
     )
-    # faccio lo stack per ottenere la coppia di coordinate per ogni valore della z
+    # faccio lo stack per ottenere la coppia di coordinate
+    # per ogni valore della z
     sottofinestra_unwrap_stacked = sottofinestra_unwrap.stack(coord=["x", "y"])
     # estrapolo le coordinate dei punti e la z in formato array
     # x3= sottofinestra_unwrap_stacked.coords['x'].values
@@ -116,9 +124,12 @@ for k in range(ind):
     regressione = Polynomial.fit(
         z_unwrap[not no_nan], z_dem[not no_nan], deg=1
     ).convert()
-    # estrapolo i coefficienti uno dei quali da inserire nell'array della correzione
-    coef1 = regressione.coef[0]
-    coef2 = regressione.coef[1]
-    # salvo i parametri su degli array delle stesse dimensioni dei file di input
+    # estrapolo i coefficienti
+    # uno dei quali da inserire nell'array della correzione
+    coef0 = regressione.coef[0]
+    coef1 = regressione.coef[1]
+    # salvo i parametri su degli array
+    # delle stesse dimensioni dei file di input
+    risultati_regress0[k] = coef0
     risultati_regress1[k] = coef1
 # TO DO: risultati_regress0 e risultati_regress1 scritte a grd
