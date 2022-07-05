@@ -70,7 +70,7 @@ ind_full = np.full(ind, False)
 ind_full[ind_xmin : ind_xmax + 1] = True
 for k in range(ind):
     # ←print(k)
-    if ind_full[k] == False:
+    if not ind_full[k]:
         continue
     if np.isnan(z[k]):
         continue
@@ -111,7 +111,7 @@ for k in range(ind):
 
     # regressione. Deve essere fatta con due array senza nan
     regressione = Polynomial.fit(
-        z_unwrap[no_nan == False], z_dem[no_nan == False], deg=1
+        z_unwrap[not no_nan], z_dem[not no_nan], deg=1
     ).convert()
     # estrapolo i coefficienti uno dei quali da inserire nell'array della correzione
     coef1 = regressione.coef[0]
