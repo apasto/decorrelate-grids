@@ -130,3 +130,7 @@ dmypy.json
 
 # Trunk linter
 .trunk/
+
+# data files: grids
+*.grd
+*.nc
