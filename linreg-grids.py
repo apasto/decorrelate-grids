@@ -247,11 +247,12 @@ y_int = A_y_int_range[0]
 # dict of xr.DataArray for each of regression results
 # same shape as data in A
 # NaN-filled -> not assigned nodes will stay NaN
+# TO DO: use a single dataset with all the output variables
+# it can be then used in gmt using the filename?variable notation
 out = {}
 for key in out_filename.keys():
-    out[key] = xr.DataArray(
-        data=np.full(A.shape, np.nan),
-        dims=["y", "x"],
+    out[key] = xr.Dataset(
+        data_vars={key: (["y", "x"], np.full(A.shape, np.nan))},
         coords=dict(
             x=(["x"], A.x.values),
             y=(["y"], A.y.values),
@@ -288,7 +289,7 @@ valid_elements_idx = np.argwhere(np.logical_not(discard.values))
 window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
 
 # iterate - this leaves room for a more efficient approach
-for count, element in enumerate(valid_elements_idx):
+for element in valid_elements_idx:
     # views from A, B defined by slices
     # (caution: + 1 on upper bound -> centered on element)
     window_A = A[
@@ -311,15 +312,18 @@ for count, element in enumerate(valid_elements_idx):
     window_valid_B = window_B.to_numpy()[window_no_nan]
     result = linregress(x=window_valid_A, y=window_valid_B)
     # coefficients and quality-of-regression in grid node
-    out["c0"][element[0], element[1]] = result.intercept
-    out["c1"][element[0], element[1]] = result.slope
-    out["rv"][element[0], element[1]] = result.rvalue
-    out["pv"][element[0], element[1]] = result.pvalue
-    out["se"][element[0], element[1]] = result.stderr
-    out["ie"][element[0], element[1]] = result.intercept_stderr
-    out["np"][element[0], element[1]] = window_no_nan_count
-    out["nr"][element[0], element[1]] = window_no_nan_ratio
+    out["c0"]["c0"][element[0], element[1]] = result.intercept
+    out["c1"]["c1"][element[0], element[1]] = result.slope
+    out["rv"]["rv"][element[0], element[1]] = result.rvalue
+    out["pv"]["pv"][element[0], element[1]] = result.pvalue
+    out["se"]["se"][element[0], element[1]] = result.stderr
+    out["ie"]["ie"][element[0], element[1]] = result.intercept_stderr
+    out["np"]["np"][element[0], element[1]] = window_no_nan_count
+    out["nr"]["nr"][element[0], element[1]] = window_no_nan_ratio
 
 # save results (coefficients, quality) to grids
 for key in out.keys():
-    out[key].to_netcdf(path=out_filename[key], format="NETCDF4")
+    out[key].to_netcdf(
+        path=out_filename[key],
+        format="NETCDF4",
+        encoding={key: {"zlib": True, "complevel": 9}})
