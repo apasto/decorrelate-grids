@@ -310,7 +310,7 @@ for element in valid_elements_idx:
 
     window_valid_A = window_A.to_numpy()[window_no_nan]
     window_valid_B = window_B.to_numpy()[window_no_nan]
-    result = linregress(x=window_valid_A, y=window_valid_B)
+    result = linregress(x=window_valid_B, y=window_valid_A)
     # coefficients and quality-of-regression in grid node
     out["c0"]["c0"][element[0], element[1]] = result.intercept
     out["c1"]["c1"][element[0], element[1]] = result.slope
