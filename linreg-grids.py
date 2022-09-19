@@ -31,7 +31,9 @@ parser = argparse.ArgumentParser(
     + "Other returned grids are: rvalue, pvalue, c1 std error, c0 std error "
     + "(see documentation of scipy.stats.linregress) "
     + "and the number of non-nan points in each window. "
-    + "All the returned grids have the same size and interval of grids A, B."
+    + "All the returned grids have the same size and interval of grids A, B. "
+    + "The default form of the output grid files is: {path and stem of file A}_linreg_c0.grd "
+    + "(e.g. for c0)."
 )
 
 # arguments: parser.add_argument 'dest' strings
@@ -45,6 +47,7 @@ arg_keys_edgewidth = "edgewidth"
 arg_keys_edgewidth_y = "edgewidth_y"
 arg_keys_global = "global"
 arg_keys_minpoints = "minpoints"
+arg_keys_metanames = "metanames"
 
 # arguments: filename of grids A, B
 parser.add_argument(
@@ -127,6 +130,18 @@ parser.add_argument(
     + "to the entire region (except edges)",
 )
 
+# optional argument: put parameter metadata in output filenames
+parser.add_argument(
+    "--" + arg_keys_metanames,
+    metavar="y/[n]",
+    type=str,
+    default="n",
+    choices=["y", "Y", "n", "N"],
+    help="include the x and y half-window size (in grid units) "
+    + "in the output filenames, in the form "
+    + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'",
+)
+
 # parse arguments (convert argparse.Namespace to dict)
 args = vars(parser.parse_args())
 
@@ -151,12 +166,18 @@ edge_width_y_i = args[arg_keys_edgewidth_y]
 global_flag_arg = args[arg_keys_global]
 if global_flag_arg.lower() == "y":
     global_flag = True
-elif global_flag_arg.lower() == "n":
-    global_flag = False  # no other states possible ('choices' argument of add_argument)
+else:
+    global_flag = False
 # minimum points
 min_points = args[arg_keys_minpoints]
 if min_points is None or min_points < 2:
     min_points = 2  # minimum requirement for linear regression
+# window size in output filenames
+metanames_arg = args[arg_keys_metanames]
+if metanames_arg.lower() == "y":
+    metanames = True
+else:
+    metanames = False
 
 # x/y windows size or aspect ratio
 if window_halfwidth_y is not None and window_aspect_ratio is not None:
@@ -172,6 +193,13 @@ elif window_halfwidth_y is None and window_aspect_ratio is None:
 elif window_aspect_ratio is not None:
     window_halfwidth_y = window_halfwidth_x / window_aspect_ratio
 
+# window half widths as string for filenames
+if metanames:
+    windows_halfwidths_str = "x{:d}_y{:d}_".format(
+        round(window_halfwidth_x), round(window_halfwidth_y))
+else:
+    windows_halfwidths_str = ""
+
 # edge width
 if edge_width_x_i is None and edge_width_y_i is None:
     edge_width_x_i = 0
@@ -184,6 +212,8 @@ elif edge_width_y_i is None:
 # global regression: not implemented yet
 if global_flag:
     raise NotImplementedError("Global regression is not implemented.")
+    # TODO: implement global regression
+    # TODO: if global_flag and metanames, add 'global' in filenames
 
 # output path for output grids
 out_dirname = A_filename.resolve().parents[0]
@@ -192,15 +222,23 @@ out_basename_prefix = A_filename.stem
 # filenames for output grids
 out_filename = {}
 # returned by regression:
-out_filename["c0"] = out_dirname / (out_basename_prefix + "_linreg_c0.grd")
-out_filename["c1"] = out_dirname / (out_basename_prefix + "_linreg_c1.grd")
-out_filename["rv"] = out_dirname / (out_basename_prefix + "_linreg_rv.grd")
-out_filename["pv"] = out_dirname / (out_basename_prefix + "_linreg_pv.grd")
-out_filename["se"] = out_dirname / (out_basename_prefix + "_linreg_se.grd")
-out_filename["ie"] = out_dirname / (out_basename_prefix + "_linreg_ie.grd")
+out_filename["c0"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "c0.grd")
+out_filename["c1"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "c1.grd")
+out_filename["rv"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "rv.grd")
+out_filename["pv"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "pv.grd")
+out_filename["se"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "se.grd")
+out_filename["ie"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "ie.grd")
 # number and ratio of non-nan points in window:
-out_filename["np"] = out_dirname / (out_basename_prefix + "_linreg_np.grd")
-out_filename["nr"] = out_dirname / (out_basename_prefix + "_linreg_nr.grd")
+out_filename["np"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "np.grd")
+out_filename["nr"] = out_dirname / (
+    out_basename_prefix + "_linreg_" + windows_halfwidths_str + "nr.grd")
 # title fields for output grids
 out_titles = {
     "c0": "Regression intercept",
