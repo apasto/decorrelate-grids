@@ -48,6 +48,7 @@ arg_keys_edgewidth_y = "edgewidth_y"
 arg_keys_global = "global"
 arg_keys_minpoints = "minpoints"
 arg_keys_metanames = "metanames"
+arg_keys_small_scale_n = "small_scale_n"
 
 # arguments: filename of grids A, B
 parser.add_argument(
@@ -142,6 +143,15 @@ parser.add_argument(
     + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'",
 )
 
+# optional argument: small scale run on n elements
+parser.add_argument(
+    "--" + arg_keys_small_scale_n,
+    metavar="SMALL_SCALE_N",
+    type=int,
+    default=None,
+    help="run the regression only on the first N valid points (window centers)",
+)
+
 # parse arguments (convert argparse.Namespace to dict)
 args = vars(parser.parse_args())
 
@@ -178,6 +188,8 @@ if metanames_arg.lower() == "y":
     metanames = True
 else:
     metanames = False
+# small scale run on first n elements
+small_scale_n = args[arg_keys_small_scale_n]
 
 # x/y windows size or aspect ratio
 if window_halfwidth_y is not None and window_aspect_ratio is not None:
@@ -322,6 +334,9 @@ discard[-edge_fullwidth_y_i:, :] = True
 # get indices in a (m, n) fashion of not-to-be-discarded points
 # to center each rolling linreg on
 valid_elements_idx = np.argwhere(np.logical_not(discard.values))
+
+if small_scale_n is not None:
+    valid_elements_idx = valid_elements_idx[:small_scale_n]
 
 # number of elements in window, used for ratio of valid elements
 window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
