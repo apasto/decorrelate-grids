@@ -140,7 +140,9 @@ parser.add_argument(
     choices=["y", "Y", "n", "N"],
     help="include the x and y half-window size (in grid units) "
     + "in the output filenames, in the form "
-    + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'",
+    + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'. "
+    + "If the aspect ratio is provided, then the output is in the form: "
+    + "(...)linreg_x{windowsize_x}_(...)'.",
 )
 
 # optional argument: small scale run on n elements
@@ -196,7 +198,8 @@ if window_halfwidth_y is not None and window_aspect_ratio is not None:
     # both provided: raise error
     raise ValueError(
         "Both window half width along y and window size aspect ratio provided. "
-        + "Provide either the window size aspect ratio, size along y, or neither."
+        + "Provide either the window size aspect ratio, size along y, "
+        + "or neither (implies 1:1 aspect ratio)."
     )
 elif window_halfwidth_y is None and window_aspect_ratio is None:
     # neither provided: aspect ratio is 1:1
@@ -207,8 +210,14 @@ elif window_aspect_ratio is not None:
 
 # window half widths as string for filenames
 if metanames:
-    windows_halfwidths_str = "x{:d}_y{:d}_".format(
-        round(window_halfwidth_x), round(window_halfwidth_y))
+    if window_aspect_ratio is None:
+        # x and y sizes
+        windows_halfwidths_str = "x{:d}_y{:d}_".format(
+            round(window_halfwidth_x), round(window_halfwidth_y))
+    else:
+        # only x size
+        windows_halfwidths_str = "x{:d}_".format(
+            round(window_halfwidth_x))
 else:
     windows_halfwidths_str = ""
 
