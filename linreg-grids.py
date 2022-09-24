@@ -117,7 +117,7 @@ parser.add_argument(
     type=int,
     default=None,
     help="do not perform regression on node if the rolling window "
-    + "contains less than MIN_POINS non-NaN points",
+    + "contains less than MIN_POINTS non-NaN points",
 )
 
 # optional argument: perform global regression
