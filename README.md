@@ -2,7 +2,7 @@
 
 ![Package logo (vector graphics). Three stylized arrays, with colourscale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
 
-Provided with two 2-D arrays ($\mathbf{A}$, $\mathbf{B}$ "grids"), perform a windowed linear regression between the two.
+Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two.
 The aim is pursuing the removal of any (linearly) correlated component between the data in $\mathbf{A}$ and $\mathbf{B}$, assuming that their linear relationship varies spatially - hence the rolling window.
 Array $\mathbf{\epsilon}$ is the result of estimating the relationship fitted on each element. $\mathbf{\epsilon}$ by all means is an array of regression residuals.
 
@@ -23,7 +23,7 @@ Extension to other models or refactoring to allow any function to be used would 
 
 ## Method
 
-**Note:** there are still some rendering issues with math in github markdown!
+<!-- Note: to get consistent rendering of math in github markdown, we are escaping some underscores "_" as "\_" (case: terms with both subscripts and superscripts, subscripts with other operators) -->
 
 Assuming variable $a$ and $b$ are in a relation in the form:
 
@@ -39,19 +39,18 @@ and we will assume that in each neighbourhood of an element in our arrays this i
 
 The least square system for each $\mathbf{A}(i, j)$, $\mathbf{B}(i, j)$ element of the input arrays, which share the same $m \times n$ size, is:
 
-$$\hat{A}_{i, j}^{o, p} = c_{0_{i, j}} + \hat{B}_{i, j}^{o, p} * c_{1_{i, j}}$$
+$$\hat{A}\_{i, j}^{o, p} = c_{0_{i, j}} + \hat{B}\_{i, j}^{o, p} * c\_{1\_{i, j}}$$
 
 where $\hat{A}_{i, j}^{o, p}$ and $\hat{B}_{i, j}^{o, p}$ are each a vector of $\mathbf{A}$ and $\mathbf{B}$ elements in the neighourhood (rolling window) of $i, j$, defined by a "window half width" of $m, n$ rows and columns:
 
 $$
 \hat{A}_{i, j}^{o, p} =
   \left[
-    a_{i-o, j-p}, \dots, a_{i+o, j-p},
+    a\_{i-o, j-p}, \dots, a\_{i+o, j-p},
     \dots,
-    a_{i-o, j+p}, \dots, a_{i+o, j+p}
+    a\_{i-o, j+p}, \dots, a\_{i+o, j+p}
   \right]
 $$
-
 
 Note that we are using a boxcar-shaped window, but the weights of any windowing function may be employed in a weighted least squares scheme.
 
