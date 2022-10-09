@@ -44,7 +44,7 @@ The least square system for each $\mathbf{A}(i, j)$, $\mathbf{B}(i, j)$ element 
 
 $$\hat{A}\_{i, j}^{o, p} = c_{0_{i, j}} + \hat{B}\_{i, j}^{o, p} * c\_{1\_{i, j}}$$
 
-where $\hat{A}_{i, j}^{o, p}$ and $\hat{B}_{i, j}^{o, p}$ are each a vector of $\mathbf{A}$ and $\mathbf{B}$ elements in the neighourhood (rolling window) of $i, j$, defined by a "window half width" of $m, n$ rows and columns:
+where $\hat{A}\_{i, j}^{o, p}$ and $\hat{B}\_{i, j}^{o, p}$ are each a vector of $\mathbf{A}$ and $\mathbf{B}$ elements in the neighourhood (rolling window) of $i, j$, defined by a "window half width" of $m, n$ rows and columns:
 
 $$
 \hat{A}_{i, j}^{o, p} =
