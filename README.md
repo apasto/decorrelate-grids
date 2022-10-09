@@ -1,5 +1,7 @@
 # decorrelate-grids
 
+[![Project Status: Concept – Minimal or no implementation has been done yet, or the repository is only intended to be a limited example, demo, or proof-of-concept.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
+
 ![Package logo (vector graphics). Three stylized arrays, with colourscale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
 
 Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two.
@@ -8,9 +10,10 @@ Array $\mathbf{\epsilon}$ is the result of estimating the relationship fitted on
 
 This was designed with a specific application in mind: mitigation of tropospheric delays in Interferometric Synthetic Aperture Radar (InSAR) data (**TODO: citations**).
 There, the unwrapped phase (the _response variable_, in the context of regression) is observed to be correlated with topography (an _explanatory variable_), a phenomenon which can be attributed in part to non-modelled propagation delays.
-Among the mitigation strategies, the unwrapped phase can be de-correlated, to reveal only the phase due to deformation of the Earth surface (ideally).
+Among the mitigation strategies, the unwrapped phase can be de-correlated, to reveal only the phase due to deformation of the Earth surface - ideally.
+This was actually set up to test if this is effective and how does it compare to other strategies.
 
-**No part of this package is InSAR-specific**. The procedure can be applied to any data with similar goals of de-correlation.
+No part of this package is InSAR-specific. The procedure can be applied to any data with similar goals of de-correlation.
 Using the result of windowed regression by itself is also a possibility, as it is customarily done in some applications (e.g. topography-gravity regression in geophysics, see e.g. **TODO: citations**).
 
 However, some assumptions and implementation choices reflect our original aim.
@@ -68,33 +71,29 @@ Arguably, the logo graphics would have been nicer as $(\mathbf{A}, \mathbf{B}) \
 
 ## Implementation
 
-TO DO. Items:
+**TO DO.** Items to be described:
 
-- aspect ratio
+- [ ] aspect ratio
 
-- nan
+- [ ] nan
 
-- output quantities
+- [ ] output quantities
 
-- computation of predicted part and residuals is not implmented yet
+- [ ] computation of predicted part and residuals is not implmented yet
 
-- global regression is not implemented yet
+- [ ] global regression is not implemented yet
 
-- documentation of script
+- [ ] documentation of script
 
 ## Roadmap
 
-TO DO. Items:
+**TO DO.** Items to be listed:
 
 - [ ] from CLI script only to module, refactor as separate functions
 - [ ] global regression
 - [ ] output in a single nc file, with fields
 - [x] window half size in output filenames
 - [ ] package
-
-## Contributors
-
-TO DO.
 
 ## License
 
