@@ -4,19 +4,18 @@
 
 ![Package logo (vector graphics). Three stylized arrays, with colourscale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
 
-Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two.
+Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two and return the fitted coefficients, as grids.
 The aim is pursuing the removal of any (linearly) correlated component between the data in $\mathbf{A}$ and $\mathbf{B}$, assuming that their linear relationship varies spatially - hence the rolling window.
 Array $\mathbf{\epsilon}$ is the result of estimating the relationship fitted on each element. $\mathbf{\epsilon}$ by all means is an array of regression residuals.
 
-This was designed with a specific application in mind: mitigation of tropospheric delays in Interferometric Synthetic Aperture Radar (InSAR) data (**TODO: citations**).
+This was designed with a specific application in mind: mitigation of tropospheric delays in Interferometric Synthetic Aperture Radar (InSAR) data (see e.g. [Bevis et al., 1992](https://doi.org/10.1029/92JD01517); [Tymofyeyeva and Fialko, 2015](https://doi.org/10.1002/2015JB011886); [Adam, 2019](10.1109/JSTARS.2019.2957919); and chapter 4.6 in [ESA EGMS Algorithm Theoretical Basis Document, 2021](https://land.copernicus.eu/user-corner/technical-library/egms-algorithm-theoretical-basis-document)).
 There, the unwrapped phase (the _response variable_, in the context of regression) is observed to be correlated with topography (an _explanatory variable_), a phenomenon which can be attributed in part to non-modelled propagation delays.
-Among the mitigation strategies, the unwrapped phase can be de-correlated, to reveal only the phase due to deformation of the Earth surface - ideally.
+Among the mitigation strategies, the unwrapped phase can be de-correlated with respect to topography. Ideally, with all the due simplification of this context, this would reveal only the phase caused by deformation of the Earth surface.
 This was actually set up to test if this is effective and how does it compare to other strategies.
 
-No part of this package is InSAR-specific. The procedure can be applied to any data with similar goals of de-correlation.
-Using the result of windowed regression by itself is also a possibility, as it is customarily done in some applications (e.g. topography-gravity regression in geophysics, see e.g. **TODO: citations**).
-
-However, some assumptions and implementation choices reflect our original aim.
+However, **no part of this package is InSAR-specific**. The procedure can be applied to any data with similar goals of de-correlation.
+Using the result of windowed regression by itself is also a possibility, as it is customarily done in some applications (e.g. topography-gravity regression in geophysics, see e.g. [Pivetta and Braitenberg, 2020](https://doi.org/10.1016/j.tecto.2019.228299)).
+Nevertheless, some assumptions and implementation choices reflect our original aim.
 Chiefly, data formats: the script reads and writes netCDF files, using xarray.
 The core procedure works regardless of this, hence moving on to a format-agnostic implementation is in the To Do list.
 
