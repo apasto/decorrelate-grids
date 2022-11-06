@@ -68,32 +68,37 @@ Since $\epsilon$ is used in some places for regression residuals, we went with t
 
 Arguably, the logo graphics would have been nicer as $(\mathbf{A}, \mathbf{B}) \rightarrow \mathbf{C}$.
 
-## Implementation
+## Try it out
 
-**TO DO.** Items to be described:
+At this early stage, this boils down to:
 
-- [ ] aspect ratio
+1. Clone this repository:
 
-- [ ] nan
+```
+git clone https://github.com/apasto/decorrelate-grids.git
+```
 
-- [ ] output quantities
+2. Create and activate its Conda environment:
 
-- [ ] computation of predicted part and residuals is not implmented yet
+```
+conda env create -f environment.yml
+conda activate linreg-grids
+```
 
-- [ ] global regression is not implemented yet
+3. Print out a short usage help:
 
-- [ ] documentation of script
+```
+./linreg-grids.py -h
+```
 
 ## Roadmap
 
-**TO DO.** Items to be listed:
-
-- [ ] from CLI script only to module, refactor as separate functions
-- [ ] global regression
-- [ ] output in a single nc file, with fields
-- [x] window half size in output filenames
-- [ ] package
+This is currently at a working, but crude state.
+Some steps are needed to get to a tidy, maintainable and packaged state.
+See this task list: [issue #2][i2].
 
 ## License
 
 This work is licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
+
+[i2]: https://github.com/apasto/decorrelate-grids/issues/2
