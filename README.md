@@ -6,7 +6,7 @@
 
 Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two and return the fitted coefficients, as grids.
 The aim is pursuing the removal of any (linearly) correlated component between the data in $\mathbf{A}$ and $\mathbf{B}$, assuming that their linear relationship varies spatially - hence the rolling window.
-Array $\mathbf{\epsilon}$ is the result of estimating the relationship fitted on each element. $\mathbf{\epsilon}$ by all means is an array of regression residuals.
+Array $\mathbf{\epsilon}$ is an array of "regression residuals", the result of subtracting the fitted relationship from $\mathbf{A}$.
 
 This was designed with a specific application in mind: mitigation of tropospheric delays in Interferometric Synthetic Aperture Radar (InSAR) data (see e.g. [Bevis et al., 1992](https://doi.org/10.1029/92JD01517); [Tymofyeyeva and Fialko, 2015](https://doi.org/10.1002/2015JB011886); [Adam, 2019](10.1109/JSTARS.2019.2957919); and chapter 4.6 in [ESA EGMS Algorithm Theoretical Basis Document, 2021](https://land.copernicus.eu/user-corner/technical-library/egms-algorithm-theoretical-basis-document)).
 There, the unwrapped phase (the _response variable_, in the context of regression) is observed to be correlated with topography (an _explanatory variable_), a phenomenon which can be attributed in part to non-modelled propagation delays.
