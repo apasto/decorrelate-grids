@@ -11,6 +11,8 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 from scipy.stats import linregress
+import multiprocessing as mp
+import time
 
 # TO DO: rolling linreg as function, separate the rest in functions and main()
 
@@ -49,6 +51,7 @@ arg_keys_global = "global"
 arg_keys_minpoints = "minpoints"
 arg_keys_metanames = "metanames"
 arg_keys_small_scale_n = "small_scale_n"
+arg_keys_n_processes = "n_proc"
 
 # arguments: filename of grids A, B
 parser.add_argument(
@@ -154,6 +157,16 @@ parser.add_argument(
     help="run the regression only on the first N valid points (window centers)",
 )
 
+# optional argument: n processes (parallel, multiprocessing)
+parser.add_argument(
+    "--" + arg_keys_n_processes,
+    metavar="N_PROCESSES",
+    type=int,
+    default=1,
+    help="number of processes for parallel run "
+    + "(1 : serial, <1 : use all logical CPU cores)",
+)
+
 # parse arguments (convert argparse.Namespace to dict)
 args = vars(parser.parse_args())
 
@@ -192,6 +205,10 @@ else:
     metanames = False
 # small scale run on first n elements
 small_scale_n = args[arg_keys_small_scale_n]
+# number of processes and serial/parallel switch
+n_processes = args[arg_keys_n_processes]
+if n_processes < 1:
+    n_processes = mp.cpu_count()
 
 # x/y windows size or aspect ratio
 if window_halfwidth_y is not None and window_aspect_ratio is not None:
@@ -350,38 +367,71 @@ if small_scale_n is not None:
 # number of elements in window, used for ratio of valid elements
 window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
 
-# iterate - this leaves room for a more efficient approach
-for element in valid_elements_idx:
-    # views from A, B defined by slices
-    # (caution: + 1 on upper bound -> centered on element)
-    window_A = A[
-        element[0] - window_halfwidth_x_i : element[0] + window_halfwidth_x_i + 1,
-        element[1] - window_halfwidth_y_i : element[1] + window_halfwidth_y_i + 1,
-    ]
-    window_B = B[
-        element[0] - window_halfwidth_x_i : element[0] + window_halfwidth_x_i + 1,
-        element[1] - window_halfwidth_y_i : element[1] + window_halfwidth_y_i + 1,
-    ]
 
-    # non-nan points in window, number and ratio respect to window size
-    window_no_nan = np.logical_not(
-        np.logical_or(np.isnan(window_A), np.isnan(window_B))
-    )
-    window_no_nan_count = np.count_nonzero(window_no_nan)
-    window_no_nan_ratio = window_no_nan_count / window_size
+# temp here
+def wrap_linregress(a, b, e_i, hw_x_i, hw_y_i):
+    w_a = a[
+        e_i[0] - hw_x_i : e_i[0] + hw_x_i + 1,
+        e_i[1] - hw_y_i : e_i[1] + hw_y_i + 1]
+    w_b = b[
+        e_i[0] - hw_x_i : e_i[0] + hw_x_i + 1,
+        e_i[1] - hw_y_i : e_i[1] + hw_y_i + 1]
+    w_no_nan = np.logical_not(
+        np.logical_or(np.isnan(w_a), np.isnan(w_b))
+        )
+    w_no_nan_count = np.count_nonzero(w_no_nan)
+    # w_no_nan_ratio = w_no_nan_count / window_size  # TODO: move outside
 
-    window_valid_A = window_A.to_numpy()[window_no_nan]
-    window_valid_B = window_B.to_numpy()[window_no_nan]
-    result = linregress(x=window_valid_B, y=window_valid_A)
-    # coefficients and quality-of-regression in grid node
-    out["c0"]["c0"][element[0], element[1]] = result.intercept
-    out["c1"]["c1"][element[0], element[1]] = result.slope
-    out["rv"]["rv"][element[0], element[1]] = result.rvalue
-    out["pv"]["pv"][element[0], element[1]] = result.pvalue
-    out["se"]["se"][element[0], element[1]] = result.stderr
-    out["ie"]["ie"][element[0], element[1]] = result.intercept_stderr
-    out["np"]["np"][element[0], element[1]] = window_no_nan_count
-    out["nr"]["nr"][element[0], element[1]] = window_no_nan_ratio
+    w_valid_a = w_a.to_numpy()[w_no_nan]
+    w_valid_b = w_b.to_numpy()[w_no_nan]
+
+    result = linregress(x=w_valid_a, y=w_valid_b)
+
+    c0 = result.intercept
+    c1 = result.slope
+    rv = result.rvalue
+    pv = result.pvalue
+    c0_stderr = result.intercept_stderr
+    c1_stderr = result.stderr
+
+    return c0, c1, rv, pv, c0_stderr, c1_stderr, w_no_nan_count
+
+
+if len(valid_elements_idx) < n_processes:
+    n_processes = len(valid_elements_idx)
+
+if n_processes == 1:
+    for element in valid_elements_idx:
+        (
+            out["c0"]["c0"][element[0], element[1]],
+            out["c1"]["c1"][element[0], element[1]],
+            out["rv"]["rv"][element[0], element[1]],
+            out["pv"]["pv"][element[0], element[1]],
+            out["ie"]["ie"][element[0], element[1]],
+            out["se"]["se"][element[0], element[1]],
+            out["np"]["np"][element[0], element[1]]) = wrap_linregress(
+                a=A, b=B, e_i=element,
+                hw_x_i=window_halfwidth_x_i,
+                hw_y_i=window_halfwidth_y_i)
+else:
+    pool = mp.Pool(n_processes)
+    for element in valid_elements_idx:
+        (
+            out["c0"]["c0"][element[0], element[1]],
+            out["c1"]["c1"][element[0], element[1]],
+            out["rv"]["rv"][element[0], element[1]],
+            out["pv"]["pv"][element[0], element[1]],
+            out["ie"]["ie"][element[0], element[1]],
+            out["se"]["se"][element[0], element[1]],
+            out["np"]["np"][element[0], element[1]]) = pool.apply(
+                wrap_linregress,
+                kwds={
+                    'a': A, 'b': B, 'e_i': element,
+                    'hw_x_i': window_halfwidth_x_i,
+                    'hw_y_i': window_halfwidth_y_i})
+
+# window_no_nan_ratio
+out["nr"]["nr"] = out["np"]["np"] / window_size
 
 # save results (coefficients, quality) to grids
 for key in out.keys():
