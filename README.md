@@ -4,7 +4,7 @@
 
 ![Package logo (vector graphics). Three stylized arrays, with colourscale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
 
-Provided with two 2-D arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two and return the fitted coefficients, as grids.
+Provided with two 2-D labelled arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two and return the fitted coefficients, as grids.
 The aim is pursuing the removal of any (linearly) correlated component between the data in $\mathbf{A}$ and $\mathbf{B}$, assuming that their linear relationship varies spatially - hence the rolling window.
 Array $\mathbf{\epsilon}$ is an array of "regression residuals", the result of subtracting the fitted relationship from $\mathbf{A}$.
 
