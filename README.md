@@ -62,8 +62,8 @@ No regression is carried out on elements on the edges (where one or more of the 
 
 We used $c$ for denoting the regression parameters, rather than the commonly used $\beta$, for familiarity with $c$ as in _coefficients_.
 
-This left with a risk of confusion with the _residuals matrix_, which could not be $\mathbf{C}$.
-Notation clashes arised for any other letter we tought of (e.g. $\mathbf{R}$).
+This left with a risk of confusion with the _residuals matrix_, which could not be $\mathbf{C}$ - since we do have arrays of fitted coefficients.
+Notation clashes arised for any other letter we tought of (e.g. $\mathbf{R}$, but there is an array of $r$ coefficients of determination).
 Since $\epsilon$ is used in some places for regression residuals, we went with that (e.g. $Y = X \beta + \epsilon$ in _Hastie et. al, Elements of statistical learning_, Eq. 3.23).
 
 Arguably, the logo graphics would have been nicer as $(\mathbf{A}, \mathbf{B}) \rightarrow \mathbf{C}$.
