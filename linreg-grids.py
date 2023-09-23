@@ -13,9 +13,29 @@ from scipy.stats import linregress
 import multiprocessing as mp
 
 
-def wrap_linregress(a, b, e_i, hw_y_i, hw_x_i):
+def wrap_linregress(a, b):
     """
-    Perform the window extraction and call scipy.stats.linregress() on the subarray (rolling window).
+    Call scipy.stats.linregress() on two vectors a (linregress x) and b (linregress y), then return the regression results
+    in a dict - to be then used to populate the regression output.
+    This serves as a placeholder to implement different (or any) regression methods,
+    converting the returned output to the dict used here.
+    """
+    # nan discarding
+    no_nan = np.logical_not(
+        np.logical_or(np.isnan(a), np.isnan(b))
+        )
+
+    result = linregress(x=a[no_nan], y=b[no_nan])
+    return {
+        'c0': result.intercept, 'c1': result.slope,
+        'rv': result.rvalue, 'pv': result.pvalue,
+        'c0_stderr': result.intercept_stderr, 'c1_stderr': result.stderr,
+        'no_nan_count': np.count_nonzero(no_nan)}
+
+
+def rolling_linregress(a, b, e_i, hw_y_i, hw_x_i):
+    """
+    Perform the window extraction and call the linear regression wrapper on the subarray (rolling window).
     Note that there is no assertion for 'not enough non-nan samples' here, this is left to linregress.
 
     Parameters
@@ -56,31 +76,19 @@ def wrap_linregress(a, b, e_i, hw_y_i, hw_x_i):
     w_b = b[
         e_i[0] - hw_y_i : e_i[0] + hw_y_i + 1,
         e_i[1] - hw_x_i : e_i[1] + hw_x_i + 1]
-    w_no_nan = np.logical_not(
-        np.logical_or(np.isnan(w_a), np.isnan(w_b))
-        )
-    w_no_nan_count = np.count_nonzero(w_no_nan)
 
-    w_valid_a = w_a.to_numpy()[w_no_nan]
-    w_valid_b = w_b.to_numpy()[w_no_nan]
+    r = wrap_linregress(a=w_a, b=w_b)
 
-    result = linregress(x=w_valid_a, y=w_valid_b)
-    c0 = result.intercept
-    c1 = result.slope
-    rv = result.rvalue
-    pv = result.pvalue
-    c0_stderr = result.intercept_stderr
-    c1_stderr = result.stderr
-
-    return c0, c1, rv, pv, c0_stderr, c1_stderr, w_no_nan_count
+    return r["c0"], r["c1"], r["rv"], r["pv"], r["c0_stderr"], r["c1_stderr"], r["no_nan_count"]
 
 
 def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                edge_width_x_i=0, edge_width_y_i=0,
-               global_flag=False, out_history=None, small_scale_n=None, n_processes=1,
+               global_regression=False, out_history=None, small_scale_n=None, n_processes=1,
                **kwargs):
     """
-    Call the regression, provided with the two dataarrays, windowing and edge parameters, number of processes.
+    Call the rolling regression, provided with the two dataarrays,
+    windowing and edge parameters, number of processes.
     """
 
     if window_halfwidth_x is None:
