@@ -115,15 +115,6 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
     if not np.isclose(A_y_int_range[0], A_y_int_range[1]):
         raise ValueError("Grid sampling along y is not constant")
 
-    # global regression: not implemented yet
-    if global_flag:
-        raise NotImplementedError("Global regression is not implemented.")
-        # TODO: implement global regression
-
-    # store grid intervals
-    x_int = A_x_int_range[0]
-    y_int = A_y_int_range[0]
-
     # dict of xr.DataArray for each of regression results
     # same shape as data in A
     # NaN-filled -> not assigned nodes will stay NaN
@@ -150,73 +141,91 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
             attrs={"title": value, "history": out_history},
         )
 
-    # window half width from units to number-of-nodes
-    window_halfwidth_x_i = round(window_halfwidth_x / x_int)
-    window_halfwidth_y_i = round(window_halfwidth_y / y_int)
+    if not global_regression:
+        # grid intervals
+        x_int = A_x_int_range[0]
+        y_int = A_y_int_range[0]
 
-    # number of grid elements to be discarded at the edges
-    edge_fullwidth_x_i = edge_width_x_i + window_halfwidth_x_i
-    edge_fullwidth_y_i = edge_width_y_i + window_halfwidth_y_i
+        # window half width from units to number-of-nodes
+        window_halfwidth_x_i = round(window_halfwidth_x / x_int)
+        window_halfwidth_y_i = round(window_halfwidth_y / y_int)
 
-    # create a "discard this element mask"
-    # mask nan elements in A or B
-    discard = np.logical_or(np.isnan(A), np.isnan(B))
-    # mask edge elements
-    # x, left edge
-    discard[:, 0:edge_fullwidth_x_i] = True
-    # x, right edge
-    discard[:, -edge_fullwidth_x_i:] = True
-    # y, bottom edge
-    discard[0:edge_fullwidth_y_i, :] = True
-    # y, top edge
-    discard[-edge_fullwidth_y_i:, :] = True
+        # number of grid elements to be discarded at the edges
+        edge_fullwidth_x_i = edge_width_x_i + window_halfwidth_x_i
+        edge_fullwidth_y_i = edge_width_y_i + window_halfwidth_y_i
 
-    # get indices in a (m, n) fashion of not-to-be-discarded points
-    # to center each rolling linreg on
-    valid_elements_idx = np.argwhere(np.logical_not(discard.values))
+        # create a "discard this element mask"
+        # mask nan elements in A or B
+        discard = np.logical_or(np.isnan(A), np.isnan(B))
+        # mask edge elements
+        # x, left edge
+        discard[:, 0:edge_fullwidth_x_i] = True
+        # x, right edge
+        discard[:, -edge_fullwidth_x_i:] = True
+        # y, bottom edge
+        discard[0:edge_fullwidth_y_i, :] = True
+        # y, top edge
+        discard[-edge_fullwidth_y_i:, :] = True
 
-    if small_scale_n is not None:
-        valid_elements_idx = valid_elements_idx[:small_scale_n, :]
+        # get indices in a (m, n) fashion of not-to-be-discarded points
+        # to center each rolling linreg on
+        valid_elements_idx = np.argwhere(np.logical_not(discard.values))
 
-    # number of elements in window, used for ratio of non-NaN samples in window
-    window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
+        if small_scale_n is not None:
+            valid_elements_idx = valid_elements_idx[:small_scale_n, :]
 
-    # avoid more proccesses than window centers
-    if len(valid_elements_idx) < n_processes:
-        n_processes = len(valid_elements_idx)
+        # number of elements in window, used for ratio of non-NaN samples in window
+        window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
 
-    if n_processes == 1:
-        for element in valid_elements_idx:
-            (
-                out["c0"]["c0"][element[0], element[1]],
-                out["c1"]["c1"][element[0], element[1]],
-                out["rv"]["rv"][element[0], element[1]],
-                out["pv"]["pv"][element[0], element[1]],
-                out["ie"]["ie"][element[0], element[1]],
-                out["se"]["se"][element[0], element[1]],
-                out["np"]["np"][element[0], element[1]]) = wrap_linregress(
-                    a=A, b=B, e_i=element,
-                    hw_x_i=window_halfwidth_x_i,
-                    hw_y_i=window_halfwidth_y_i)
-    else:
-        pool = mp.Pool(n_processes)
-        for element in valid_elements_idx:
-            (
-                out["c0"]["c0"][element[0], element[1]],
-                out["c1"]["c1"][element[0], element[1]],
-                out["rv"]["rv"][element[0], element[1]],
-                out["pv"]["pv"][element[0], element[1]],
-                out["ie"]["ie"][element[0], element[1]],
-                out["se"]["se"][element[0], element[1]],
-                out["np"]["np"][element[0], element[1]]) = pool.apply(
-                    wrap_linregress,
-                    kwds={
-                        'a': A, 'b': B, 'e_i': element,
-                        'hw_x_i': window_halfwidth_x_i,
-                        'hw_y_i': window_halfwidth_y_i})
+        # avoid more proccesses than window centers
+        if len(valid_elements_idx) < n_processes:
+            n_processes = len(valid_elements_idx)
 
-    # window_no_nan_ratio
-    out["nr"]["nr"] = out["np"]["np"] / window_size
+        if n_processes == 1:
+            for element in valid_elements_idx:
+                (
+                    out["c0"]["c0"][element[0], element[1]],
+                    out["c1"]["c1"][element[0], element[1]],
+                    out["rv"]["rv"][element[0], element[1]],
+                    out["pv"]["pv"][element[0], element[1]],
+                    out["ie"]["ie"][element[0], element[1]],
+                    out["se"]["se"][element[0], element[1]],
+                    out["np"]["np"][element[0], element[1]]) = rolling_linregress(
+                        a=A.to_numpy(), b=B.to_numpy(), e_i=element,
+                        hw_x_i=window_halfwidth_x_i,
+                        hw_y_i=window_halfwidth_y_i)
+        else:
+            pool = mp.Pool(n_processes)
+            for element in valid_elements_idx:
+                (
+                    out["c0"]["c0"][element[0], element[1]],
+                    out["c1"]["c1"][element[0], element[1]],
+                    out["rv"]["rv"][element[0], element[1]],
+                    out["pv"]["pv"][element[0], element[1]],
+                    out["ie"]["ie"][element[0], element[1]],
+                    out["se"]["se"][element[0], element[1]],
+                    out["np"]["np"][element[0], element[1]]) = pool.apply(
+                        rolling_linregress,
+                        kwds={
+                            'a': A.to_numpy(), 'b': B.to_numpy(), 'e_i': element,
+                            'hw_x_i': window_halfwidth_x_i,
+                            'hw_y_i': window_halfwidth_y_i})
+
+        # no_nan : window size ratio
+        out["nr"]["nr"] = out["np"]["np"] / window_size
+    else:  # global regression
+        r = wrap_linregress(a=A.to_numpy(), b=B.to_numpy())
+        # no_nan : global size ratio
+        no_nan_ratio = r["no_nan_count"] / A.size
+        out_shape = A.shape
+        out["c0"]["c0"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["c0"]))
+        out["c1"]["c1"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["c1"]))
+        out["rv"]["rv"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["rv"]))
+        out["pv"]["pv"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["pv"]))
+        out["ie"]["ie"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["c0_stderr"]))
+        out["se"]["se"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["c1_stderr"]))
+        out["np"]["np"] = (["y", "x"], np.full(shape=out_shape, fill_value=r["no_nan_count"]))
+        out["nr"]["nr"] = (["y", "x"], np.full(shape=out_shape, fill_value=no_nan_ratio))
 
     return out
 
@@ -311,7 +320,7 @@ def parse_arguments():
             + "(...)linreg_x{windowsize_x}_(...)'."
             },
         # switch: global regression
-        "--global_flag": {
+        "--global_regression": {
             "action": "store_true",
             "help": "instead of rolling regression, fit one regression "
             + "to the entire region (except edges)"
@@ -462,6 +471,7 @@ def main():
     if not out_dirname.exists():
         raise FileNotFoundError(
             "Provided output path: \"{:s}\" not found.".format(str(out_dirname)))
+        # TODO: "mkdir -p" here, error if fails
 
     # history field for output grids: record arguments in call
     out_history = record_arguments()
