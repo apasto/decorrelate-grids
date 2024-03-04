@@ -9,8 +9,6 @@ import numpy as np
 import xarray as xr
 from scipy.stats import linregress
 
-from decorrelategrids import main
-
 
 def wrap_linregress(a, b):
     """
@@ -222,7 +220,3 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
         out["nr"]["nr"] = (["y", "x"], np.full(shape=out_shape, fill_value=no_nan_ratio))
 
     return out
-
-
-if __name__ == "__main__":
-    main()

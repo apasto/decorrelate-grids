@@ -10,8 +10,9 @@ setup(
     author_email='alberto.pastorutti@gmail.com',
     license='Apache-2.0',
     packages=['decorrelategrids'],
-    package_data={
-        'decorrelategrids': ['TODO']},
+    entry_points={
+        'console_scripts': ['decorrelategrids=decorrelategrids.__init__:main'],
+    },
     install_requires=['numpy',
                       'xarray',
                       'scipy',

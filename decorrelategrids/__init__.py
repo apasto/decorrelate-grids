@@ -10,9 +10,9 @@ from pathlib import Path
 
 import xarray as xr
 
-from decorrelategrids.cliwrapper import parse_arguments, window_halfwidths_from_args, record_arguments, \
+from .cliwrapper import parse_arguments, window_halfwidths_from_args, record_arguments, \
     define_out_filenames, save_results
-from decorrelategrids.rollinglinreg import regression
+from .rollinglinreg import regression
 
 
 def main():
