@@ -4,13 +4,14 @@
 Compute a rolling-window linear regression on 2 grids.
 """
 import argparse
+import multiprocessing as mp
 import shlex
 import sys
 from pathlib import Path
+
 import numpy as np
 import xarray as xr
 from scipy.stats import linregress
-import multiprocessing as mp
 
 
 def wrap_linregress(a, b):
@@ -23,7 +24,7 @@ def wrap_linregress(a, b):
     # nan discarding
     no_nan = np.logical_not(
         np.logical_or(np.isnan(a), np.isnan(b))
-        )
+    )
 
     result = linregress(x=a[no_nan], y=b[no_nan])
     return {
@@ -70,12 +71,8 @@ def rolling_linregress(a, b, e_i, hw_y_i, hw_x_i):
         w_no_nan_count : int
             Count of non-NaN elements in the window
     """
-    w_a = a[
-        e_i[0] - hw_y_i : e_i[0] + hw_y_i + 1,
-        e_i[1] - hw_x_i : e_i[1] + hw_x_i + 1]
-    w_b = b[
-        e_i[0] - hw_y_i : e_i[0] + hw_y_i + 1,
-        e_i[1] - hw_x_i : e_i[1] + hw_x_i + 1]
+    w_a = a[e_i[0] - hw_y_i: e_i[0] + hw_y_i + 1, e_i[1] - hw_x_i: e_i[1] + hw_x_i + 1]
+    w_b = b[e_i[0] - hw_y_i: e_i[0] + hw_y_i + 1, e_i[1] - hw_x_i: e_i[1] + hw_x_i + 1]
 
     r = wrap_linregress(a=w_a, b=w_b)
 
@@ -84,8 +81,7 @@ def rolling_linregress(a, b, e_i, hw_y_i, hw_x_i):
 
 def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                edge_width_x_i=0, edge_width_y_i=0,
-               global_regression=False, out_history=None, small_scale_n=None, n_processes=1,
-               **kwargs):
+               global_regression=False, out_history=None, small_scale_n=None, n_processes=1):
     """
     Call the rolling regression, provided with the two dataarrays,
     windowing and edge parameters, number of processes.
@@ -129,7 +125,7 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
         "ie": "Standard error of intercept",
         "np": "Number of non-nan points in rolling regression window",
         "nr": "Ratio of non-nan points and total number of points in window",
-        }
+    }
     out = {}
     for key, value in out_titles.items():
         out[key] = xr.Dataset(
@@ -177,7 +173,7 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
         # number of elements in window, used for ratio of non-NaN samples in window
         window_size = (window_halfwidth_x_i * 2 + 1) * (window_halfwidth_y_i * 2 + 1)
 
-        # avoid more proccesses than window centers
+        # avoid more processes than window centers
         if len(valid_elements_idx) < n_processes:
             n_processes = len(valid_elements_idx)
 
@@ -191,9 +187,9 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                     out["ie"]["ie"][element[0], element[1]],
                     out["se"]["se"][element[0], element[1]],
                     out["np"]["np"][element[0], element[1]]) = rolling_linregress(
-                        a=A.to_numpy(), b=B.to_numpy(), e_i=element,
-                        hw_x_i=window_halfwidth_x_i,
-                        hw_y_i=window_halfwidth_y_i)
+                    a=A.to_numpy(), b=B.to_numpy(), e_i=element,
+                    hw_x_i=window_halfwidth_x_i,
+                    hw_y_i=window_halfwidth_y_i)
         else:
             pool = mp.Pool(n_processes)
             for element in valid_elements_idx:
@@ -205,11 +201,11 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                     out["ie"]["ie"][element[0], element[1]],
                     out["se"]["se"][element[0], element[1]],
                     out["np"]["np"][element[0], element[1]]) = pool.apply(
-                        rolling_linregress,
-                        kwds={
-                            'a': A.to_numpy(), 'b': B.to_numpy(), 'e_i': element,
-                            'hw_x_i': window_halfwidth_x_i,
-                            'hw_y_i': window_halfwidth_y_i})
+                    rolling_linregress,
+                    kwds={
+                        'a': A.to_numpy(), 'b': B.to_numpy(), 'e_i': element,
+                        'hw_x_i': window_halfwidth_x_i,
+                        'hw_y_i': window_halfwidth_y_i})
 
         # no_nan : window size ratio
         out["nr"]["nr"] = out["np"]["np"] / window_size
@@ -233,23 +229,23 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
 def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Compute a rolling-window linear regression on 2 grids. "
-        + "The variable in grid A is assumed to be, at least partially, "
-        + "in a linear relationship with grid B. "
-        + "A linear regression is performed in boxcar-shaped rolling windows, "
-        + "of given size, avoding nodes which are closer to edges less than "
-        + "an half window, plus (optional) an edge of given width. "
-        + "Set either a 1:1 window half size, both x and y window half sizes, or "
-        + "the x/y aspect ratio of window sizes. "
-        + "The c0, c1 coefficients of a relationship in the form "
-        + "A = c0 + c1 * B are returned (as a grid) for each point "
-        + "in the input grids (which must cover the same region, "
-        + " with the same x, y intervals). "
-        + "Other returned grids are: rvalue, pvalue, c1 std error, c0 std error "
-        + "(see documentation of scipy.stats.linregress), "
-        + "the number of non-nan points in each window and the non-nan/total points ratio. "
-        + "All the returned grids have the same size and interval of grids A, B. "
-        + "The default form of the output grid files is: {path and stem of file A}_linreg_c0.grd "
-        + "(e.g. for c0)."
+                    + "The variable in grid A is assumed to be, at least partially, "
+                    + "in a linear relationship with grid B. "
+                    + "A linear regression is performed in boxcar-shaped rolling windows, "
+                    + "of given size, avoiding nodes which are closer to edges less than "
+                    + "an half window, plus (optional) an edge of given width. "
+                    + "Set either a 1:1 window half size, both x and y window half sizes, or "
+                    + "the x/y aspect ratio of window sizes. "
+                    + "The c0, c1 coefficients of a relationship in the form "
+                    + "A = c0 + c1 * B are returned (as a grid) for each point "
+                    + "in the input grids (which must cover the same region, "
+                    + " with the same x, y intervals). "
+                    + "Other returned grids are: rvalue, pvalue, c1 std error, c0 std error "
+                    + "(see documentation of scipy.stats.linregress), "
+                    + "the number of non-nan points in each window and the non-nan/total points ratio. "
+                    + "All the returned grids have the same size and interval of grids A, B. "
+                    + "The default form of the output grid files is: {path and stem of file A}_linreg_c0.grd "
+                    + "(e.g. for c0)."
     )
 
     # arg_defs keys: argument name, values: kwargs to be passed to add_argument
@@ -259,108 +255,108 @@ def parse_arguments():
             "metavar": "A.grd",
             "type": str,
             "help": "filename of dependent variable grid A, (A = f(B))"
-            },
+        },
         "B_filename": {
             "metavar": "B.grd",
             "type": str,
             "help": "filename of independent variable grid B"
-            },
+        },
         # required: window half size along x
         "window_halfwidth_x": {
             "metavar": "HALF_SIZE",
             "type": float,
             "help": "half size of window, in grid units, along x"
-            },
+        },
         # window half size along y
         "--window_halfwidth_y": {
             "metavar": "HALF_SIZE_Y",
             "type": float,
             "default": None,
             "help": "half size of window, in grid units, along y "
-            + "(set either this, aspect ratio, or neither (implies 1:1 aspect ratio)"
-            },
+                    + "(set either this, aspect ratio, or neither (implies 1:1 aspect ratio)"
+        },
         # window size x/y aspect ratio
         "--window_aspect_ratio": {
             "metavar": "ASPECT_RATIO",
             "type": float,
             "default": None,
             "help": "x/y aspect ratio of window size"
-            + "(set either this, half size along y, or neither (implies 1:1 aspect ratio))"
-            },
+                    + "(set either this, half size along y, or neither (implies 1:1 aspect ratio))"
+        },
         # edge widths
         "--edge_width_x_i": {
             "metavar": "EDGE_WIDTH",
             "type": int,
             "default": 0,
             "help": "number of grid nodes to be discarded at left and right edges, along x "
-            + "(default: 0)"
-            },
+                    + "(default: 0)"
+        },
         "--edge_width_y_i": {
             "metavar": "EDGE_WIDTH_Y",
             "type": int,
             "default": 0,
             "help": "number of grid nodes to be discarded at top and bottom edges, along y "
-            + " (default: 0)"
-            },
+                    + " (default: 0)"
+        },
         # cutoff min point per window: if less, no regression
         "--minpoints": {
             "metavar": "MIN_POINTS",
             "type": int,
             "default": 2,
             "help": "do not perform regression on node if the rolling window "
-            + "contains less than MIN_POINTS non-NaN points"
-            },
+                    + "contains less than MIN_POINTS non-NaN points"
+        },
         # switch: parameter metadata in output filename(s)
         "--metanames": {
             "action": "store_true",
             "help": "include the x and y half-window size (in grid units) "
-            + "in the output filenames, in the form "
-            + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'. "
-            + "If the aspect ratio is provided, then the output is in the form: "
-            + "(...)linreg_x{windowsize_x}_(...)'."
-            },
+                    + "in the output filenames, in the form "
+                    + "'(...)linreg_x{windowsize_x}_y{windowsize_y}_(...)'. "
+                    + "If the aspect ratio is provided, then the output is in the form: "
+                    + "(...)linreg_x{windowsize_x}_(...)'."
+        },
         # switch: global regression
         "--global_regression": {
             "action": "store_true",
             "help": "instead of rolling regression, fit one regression "
-            + "to the entire region (except edges)"
-            },
+                    + "to the entire region (except edges)"
+        },
         # small scale run on n elements
         "--small_scale_n": {
             "metavar": "SMALL_SCALE_N",
             "type": int,
             "default": None,
             "help": "run the regression only on the first N valid window centers"
-            + "(use case: small scale test run)"
-            },
+                    + "(use case: small scale test run)"
+        },
         # n processes (parallel with multiprocessing)
         "--n_processes": {
             "metavar": "N",
             "type": int,
             "default": 1,
             "help": "number of processes for parallel run "
-            + "(1 : serial, <1 : use all logical CPU cores)"
-            },
+                    + "(1 : serial, <1 : use all logical CPU cores)"
+        },
         # output grids in multiple nc files
         "--split_out_files": {
             "action": "store_true",
             "help": "save each output grid in a separate nc file (default: as fields in a single file)"
-            },
+        },
         # output path (defaults to same as A grid path)
         "--output_path": {
             "metavar": "OUT_PATH",
             "type": str,
             "default": None,
             "help": "path to save the output file(s) in (default: same directory as A grid)"
-            },
+        },
         # output stuff
-        "--out_basename_prefix" : {
+        "--out_basename_prefix": {
             "metavar": "OUT_PREFIX",
             "type": str,
             "default": None,
             "help": "prepend this to the name of output file(s) (default: A grid filename, with no extension)"
-            }
         }
+    }
 
     for key, value in arg_defs.items():
         parser.add_argument(
@@ -385,7 +381,7 @@ def record_arguments():
 
 
 def window_halfwidths_from_args(
-        window_halfwidth_x, window_halfwidth_y=None, window_aspect_ratio=None, **kwargs):
+        window_halfwidth_x, window_halfwidth_y=None, window_aspect_ratio=None):
     """
     Manage the rolling window halfwidths provided in arguments, with the following cases:
      - window_aspect_ratio provided, window_halfwidth_y computed accordingly
@@ -414,7 +410,7 @@ def define_out_filenames(out_basename_prefix, out_dirname, windows_halfwidths_st
     """
     Define the output filenames, in a script call.
     Populates a dict of filenames as: dirname / prefix + '_linreg' + halfwidths_str + key + '.'grd'
-    provided with a prefix, dirname, a string documenting the window size (may be empty).
+    provided with a prefix, dirname, a string documenting the window size (can be empty).
     Iterates on all the provided 'out_keys', suitable both for 'one file' and multiple file output.
     """
     out_filename = {
