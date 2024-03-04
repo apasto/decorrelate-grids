@@ -2,7 +2,7 @@
 
 [![Project Status: Concept – Minimal or no implementation has been done yet, or the repository is only intended to be a limited example, demo, or proof-of-concept.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept)
 
-![Package logo (vector graphics). Three stylized arrays, with colourscale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
+![Package logo (vector graphics). Three stylized arrays, with colour scale filled pixel-elements, expressing the windowed decorrelation operator arguments (A, B) right arrow pointing to regression residual array R.](readme_figures/logo_linreg.png)
 
 Provided with two 2-D labelled arrays ( $\mathbf{A}, \mathbf{B}$ "grids"), perform a windowed linear regression between the two and return the fitted coefficients, as grids.
 The aim is pursuing the removal of any (linearly) correlated component between the data in $\mathbf{A}$ and $\mathbf{B}$, assuming that their linear relationship varies spatially - hence the rolling window.
@@ -25,7 +25,7 @@ Extension to other models or refactoring to allow any function to be used would 
 
 ## Method
 
-<!-- Note: to get consistent rendering of math in github markdown, we are escaping some underscores "_" as "\_" (case: terms with both subscripts and superscripts, subscripts with other operators) -->
+<!-- Note: to get consistent rendering of math in GitHub markdown, we are escaping some underscores "_" as "\_" (case: terms with both subscripts and superscripts, subscripts with other operators) -->
 
 Assuming variable $a$ and $b$ are in a relation in the form:
 
@@ -43,7 +43,7 @@ The least square system for each $\mathbf{A}(i, j)$, $\mathbf{B}(i, j)$ element 
 
 $$\hat{A}\_{i, j}^{o, p} = c_{0_{i, j}} + \hat{B}\_{i, j}^{o, p} * c\_{1\_{i, j}}$$
 
-where $\hat{A}\_{i, j}^{o, p}$ and $\hat{B}\_{i, j}^{o, p}$ are each a vector of $\mathbf{A}$ and $\mathbf{B}$ elements in the neighourhood (rolling window) of $i, j$, defined by a "window half width" of $m, n$ rows and columns:
+where $\hat{A}\_{i, j}^{o, p}$ and $\hat{B}\_{i, j}^{o, p}$ are each a vector of $\mathbf{A}$ and $\mathbf{B}$ elements in the neighbourhood (rolling window) of $i, j$, defined by a "window half width" of $m, n$ rows and columns:
 
 $$
 \hat{A}_{i, j}^{o, p} =
@@ -63,39 +63,36 @@ No regression is carried out on elements on the edges (where one or more of the 
 We used $c$ for denoting the regression parameters, rather than the commonly used $\beta$, for familiarity with $c$ as in _coefficients_.
 
 This left with a risk of confusion with the _residuals matrix_, which could not be $\mathbf{C}$ - since we do have arrays of fitted coefficients.
-Notation clashes arised for any other letter we tought of (e.g. $\mathbf{R}$, but there is an array of $r$ coefficients of determination).
+Notation clashes arose for any other letter we thought of (e.g. $\mathbf{R}$, but there is an array of $r$ coefficients of determination).
 Since $\epsilon$ is used in some places for regression residuals, we went with that (e.g. $Y = X \beta + \epsilon$ in _Hastie et. al, Elements of statistical learning_, Eq. 3.23).
 
 Arguably, the logo graphics would have been nicer as $(\mathbf{A}, \mathbf{B}) \rightarrow \mathbf{C}$.
 
 ## Try it out
 
-At this early stage, this boils down to:
+At this stage, this boils down to:
 
 1. Clone this repository:
 
 ```
-git clone https://github.com/apasto/decorrelate-grids.git
+git clone https://github.com/apasto/decorrelate-grids.git && cd decorrelate-grids
 ```
 
-2. Create and activate its Conda environment:
+2. Install the package, e.g. with pip or by creating an ad hoc Conda environment:
+
+ - pip: `pip install -e ./`
+ - conda: `conda env create -f environment.yml`, then activate it
+
+3. To print out a short usage help of the provided `decorrelategrids` cli tool:
 
 ```
-conda env create -f environment.yml
-conda activate linreg-grids
-```
-
-3. Print out a short usage help:
-
-```
-./linreg-grids.py -h
+decorrelategrids -h
 ```
 
 ## Roadmap
 
-This is currently at a working, but crude state.
-Some steps are needed to get to a tidy, maintainable and packaged state.
-See this task list: [issue #2][i2].
+This is currently at a working, but early stage.
+Some steps are planned to get beyond the prototype state, see this task list: [issue #2][i2].
 
 ## License
 
