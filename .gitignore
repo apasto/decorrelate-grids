@@ -131,6 +131,9 @@ dmypy.json
 # Trunk linter
 .trunk/
 
+# pycharm
+.idea/
+
 # data files: grids
 *.grd
 *.nc
