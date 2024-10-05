@@ -75,6 +75,24 @@ def rolling_linregress(a, b, e_i, hw_y_i, hw_x_i):
     return r["c0"], r["c1"], r["rv"], r["pv"], r["c0_stderr"], r["c1_stderr"], r["no_nan_count"]
 
 
+def _generate_pool_arguments(A, B, valid_elements_idx, hw_x_i, hw_y_i):
+    """
+    Generate the arguments (as tuples of arguments) for the call to
+    rolling_linregress in pool.imap_unordered.
+    This is equivalent (in practice, not in implementation) to
+    the 'kwds' argument in pool.apply:
+        pool.apply(rolling_linregress,
+            kwds={
+                'a': A.to_numpy(), 'b': B.to_numpy(), 'e_i': element,
+                'hw_x_i': window_halfwidth_x_i,
+                'hw_y_i': window_halfwidth_y_i
+                }
+            )
+    """
+    for element in valid_elements_idx:
+        yield (A.to_numpy(), B.to_numpy(), element, hw_x_i, hw_y_i)
+
+
 def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                edge_width_x_i=0, edge_width_y_i=0,
                global_regression=False, out_history=None, small_scale_n=None, n_processes=1):
@@ -187,21 +205,17 @@ def regression(A, B, window_halfwidth_x=None, window_halfwidth_y=None,
                     hw_x_i=window_halfwidth_x_i,
                     hw_y_i=window_halfwidth_y_i)
         else:
-            pool = mp.Pool(n_processes)
-            for element in valid_elements_idx:
-                (
-                    out["c0"]["c0"][element[0], element[1]],
-                    out["c1"]["c1"][element[0], element[1]],
-                    out["rv"]["rv"][element[0], element[1]],
-                    out["pv"]["pv"][element[0], element[1]],
-                    out["ie"]["ie"][element[0], element[1]],
-                    out["se"]["se"][element[0], element[1]],
-                    out["np"]["np"][element[0], element[1]]) = pool.apply(
+            with mp.Pool(n_processes) as pool:
+                results = pool.imap_unordered(
                     rolling_linregress,
-                    kwds={
-                        'a': A.to_numpy(), 'b': B.to_numpy(), 'e_i': element,
-                        'hw_x_i': window_halfwidth_x_i,
-                        'hw_y_i': window_halfwidth_y_i})
+                    _generate_pool_arguments(
+                        A, B, valid_elements_idx, window_halfwidth_x_i, window_halfwidth_y_i))
+
+            for element, result in zip(valid_elements_idx, results):
+                out["c0"]["c0"][element[0], element[1]], out["c1"]["c1"][element[0], element[1]], \
+                    out["rv"]["rv"][element[0], element[1]], out["pv"]["pv"][element[0], element[1]], \
+                    out["ie"]["ie"][element[0], element[1]], out["se"]["se"][element[0], element[1]], \
+                    out["np"]["np"][element[0], element[1]] = result
 
         # no_nan : window size ratio
         out["nr"]["nr"] = out["np"]["np"] / window_size
