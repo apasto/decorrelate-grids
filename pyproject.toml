@@ -21,7 +21,7 @@ dependencies = [
     "xarray",
 ]
 license = "Apache-2.0"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 [project.urls]
 Homepage = "https://github.com/apasto/decorrelate-grids"
