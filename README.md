@@ -87,6 +87,15 @@ source env/bin/activate
 pip install .
 ```
 
+Or using [`uv`](https://docs.astral.sh/uv/) 🚀:
+
+```bash
+uv venv
+uv pip install .
+```
+
+Due to the early development stage of this, consider calling `pip` with the `-e` option: `pip install -e .` / `uv pip install -e .`
+
 A Conda [`environment.yml`](./environment.yml) is also provided.
 
 3. To print out a short usage help of the provided `decorrelategrids` cli tool:
