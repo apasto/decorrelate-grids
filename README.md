@@ -74,18 +74,24 @@ At this stage, this boils down to:
 
 1. Clone this repository:
 
-```
-git clone https://github.com/apasto/decorrelate-grids.git && cd decorrelate-grids
+```bash
+git clone https://github.com/apasto/decorrelate-grids.git &&
+  cd decorrelate-grids
 ```
 
-2. Install the package, e.g. with pip or by creating an ad hoc Conda environment:
+2. Install the package, for example in a venv:
 
- - pip: `pip install -e ./`
- - conda: `conda env create -f environment.yml`, then activate it
+```bash
+python -m venv env
+source env/bin/activate
+pip install .
+```
+
+A Conda [`environment.yml`](./environment.yml) is also provided.
 
 3. To print out a short usage help of the provided `decorrelategrids` cli tool:
 
-```
+```bash
 decorrelategrids -h
 ```
 
